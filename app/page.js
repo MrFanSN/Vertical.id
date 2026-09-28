@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+const STORAGE_KEY = 'vertical-orders-v2';
+
 const productCatalog = [
-  // BIGBUS JB5
   {model:'BIGBUS JB5', no:1, name:'DUM DEPAN ABS + BOX TV', unit:'SET'},
   {model:'BIGBUS JB5', no:2, name:'DEK PINTU DEPAN, BLK, DARURAT', unit:'PC'},
   {model:'BIGBUS JB5', no:3, name:'COVER T KN KR + LASER CUTING', unit:'PC'},
@@ -26,7 +27,6 @@ const productCatalog = [
   {model:'BIGBUS JB5', no:20, name:'DEK BEGASI BELAKANG', unit:'PC'},
   {model:'BIGBUS JB5', no:21, name:'CROME BANDO, CROME PISTOL, KACA BLK', unit:'SET'},
 
-  // MEDIUM JB5
   {model:'MEDIUM JB5', no:1, name:'DUM DEPAN ABS MEDIUM JB5 + BOX TV', unit:'SET'},
   {model:'MEDIUM JB5', no:2, name:'DEK PINTU DEPAN, BLK, DARURAT', unit:'PC'},
   {model:'MEDIUM JB5', no:3, name:'COVER T KN KR + LASER CUTTING', unit:'PC'},
@@ -52,107 +52,43 @@ const productCatalog = [
 const seed = [
   {
     id:'VER-001',
-    po:'PO-001',
+    po:'PO-8891',
     orderDate:'2026-09-20',
     deliveryDate:'2026-09-30',
     notes:'Pengiriman tahap pertama',
     approved:false,
     sent:false,
     items:[
-      {
-        id:1,
-        name:'DUM DEPAN ABS + BOX TV',
-        part:'',
-        qty:1,
-        unit:'SET',
-        model:'BIGBUS JB5',
-        checked:true
-      },
-      {
-        id:2,
-        name:'COVER KABEL',
-        part:'',
-        qty:2,
-        unit:'PC',
-        model:'BIGBUS JB5',
-        checked:true
-      },
-      {
-        id:3,
-        name:'PLAFON JB5',
-        part:'',
-        qty:1,
-        unit:'PC',
-        model:'BIGBUS JB5',
-        checked:false
-      },
-      {
-        id:4,
-        name:'FRAME KACA BLK',
-        part:'',
-        qty:1,
-        unit:'PC',
-        model:'BIGBUS JB5',
-        checked:false
-      }
+      {id:1,name:'DUM DEPAN ABS + BOX TV',part:'',qty:10,checked:true},
+      {id:2,name:'FILTER OLI',part:'',qty:20,checked:true},
+      {id:3,name:'COVER KABEL',part:'',qty:5,checked:false},
+      {id:4,name:'SEAL KIT',part:'',qty:5,checked:false}
     ]
   },
   {
     id:'VER-002',
-    po:'PO-002',
+    po:'PO-8912',
     orderDate:'2026-09-23',
     deliveryDate:'2026-10-03',
     notes:'',
     approved:false,
     sent:false,
     items:[
-      {
-        id:1,
-        name:'DUM DEPAN ABS MEDIUM JB5 + BOX TV',
-        part:'',
-        qty:1,
-        unit:'SET',
-        model:'MEDIUM JB5',
-        checked:false
-      },
-      {
-        id:2,
-        name:'COVER BANDO DALAM',
-        part:'',
-        qty:2,
-        unit:'SET',
-        model:'MEDIUM JB5',
-        checked:false
-      }
+      {id:1,name:'DEK PINTU DEPAN, BLK, DARURAT',part:'',qty:15,checked:false},
+      {id:2,name:'COVER KABEL',part:'',qty:10,checked:false}
     ]
   },
   {
     id:'VER-003',
-    po:'PO-003',
+    po:'PO-8870',
     orderDate:'2026-09-15',
     deliveryDate:'2026-09-28',
     notes:'Lengkap',
     approved:true,
     sent:true,
     items:[
-      {
-        id:1,
-        name:'DUM DEPAN ABS + BOX TV',
-        part:'',
-        qty:1,
-        unit:'SET',
-        model:'BIGBUS JB5',
-        checked:true
-      },
-      {
-        id:2,
-        name:'COVER PILAR KACA BLK SAMPING KN KR',
-        part:'',
-        qty:2,
-        unit:'PC',
-        model:'BIGBUS JB5',
-        checked:true
-      }
+      {id:1,name:'FRAME KACA BLK',part:'',qty:4,checked:true},
+      {id:2,name:'COOLBOX LENGKAP HANDLE, SKOK, ENGSEL',part:'',qty:8,checked:true}
     ]
   }
 ];
@@ -168,25 +104,12 @@ function daysUntil(date){
 }
 
 function fmt(d){
+  if(!d) return '-';
   return new Intl.DateTimeFormat('id-ID',{
     day:'2-digit',
     month:'short',
     year:'numeric'
   }).format(new Date(d));
-}
-
-function progress(o){
-  if(!o.items.length) return 0;
-  return Math.round(
-    o.items.filter(i=>i.checked).length / o.items.length * 100
-  );
-}
-
-function status(o){
-  if(o.approved) return 'Approved';
-  if(o.sent) return 'Dikirim';
-  if(progress(o)===100) return 'Siap dibuat SJ';
-  return 'Diproses';
 }
 
 export default function Home(){
@@ -199,30 +122,40 @@ export default function Home(){
   const [showForm,setShowForm] = useState(false);
   const [toast,setToast] = useState('');
 
+  /*
+    IMPORTANT:
+    Storage lama "vertical-orders" sengaja tidak digunakan.
+    Versi baru menggunakan "vertical-orders-v2".
+    Jadi data ORD lama tidak akan masuk lagi.
+  */
   useEffect(()=>{
-    const x = localStorage.getItem('vertical-orders');
-    if(x){
-      try{
-        setOrders(JSON.parse(x));
-      }catch{
-        setOrders(seed);
+    try{
+      const x = localStorage.getItem(STORAGE_KEY);
+
+      if(x){
+        const parsed = JSON.parse(x);
+
+        if(Array.isArray(parsed)){
+          setOrders(parsed);
+        }
       }
+    }catch(error){
+      console.error('Gagal membaca localStorage:',error);
+      localStorage.removeItem(STORAGE_KEY);
     }
   },[]);
 
   useEffect(()=>{
-    localStorage.setItem(
-      'vertical-orders',
-      JSON.stringify(orders)
-    );
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(orders));
+    }catch(error){
+      console.error('Gagal menyimpan localStorage:',error);
+    }
   },[orders]);
 
   useEffect(()=>{
     if(toast){
-      const t = setTimeout(
-        ()=>setToast(''),
-        2400
-      );
+      const t = setTimeout(()=>setToast(''),2400);
       return ()=>clearTimeout(t);
     }
   },[toast]);
@@ -231,17 +164,14 @@ export default function Home(){
     const total = orders.length;
 
     const complete = orders.filter(
-      o=>o.items.length>0 &&
-      o.items.every(i=>i.checked)
+      o => o.items.length > 0 && o.items.every(i=>i.checked)
     ).length;
 
-    const approved = orders.filter(
-      o=>o.approved
-    ).length;
+    const approved = orders.filter(o=>o.approved).length;
 
-    // WARNING H-5
     const warnings = orders.filter(o=>{
       const d = daysUntil(o.deliveryDate);
+
       return d >= 0 &&
              d <= 5 &&
              !o.approved;
@@ -255,11 +185,9 @@ export default function Home(){
     };
   },[orders]);
 
-  const filtered = orders.filter(o=>(
-    o.id+' '+o.po
-  ).toLowerCase().includes(
-    query.toLowerCase()
-  ));
+  const filtered = orders.filter(o=>
+    (o.id+' '+o.po).toLowerCase().includes(query.toLowerCase())
+  );
 
   function openOrder(o){
     setSelected(o.id);
@@ -269,7 +197,7 @@ export default function Home(){
   function updateOrder(id,fn){
     setOrders(prev =>
       prev.map(o =>
-        o.id===id ? fn({...o}) : o
+        o.id === id ? fn({...o}) : o
       )
     );
   }
@@ -277,10 +205,11 @@ export default function Home(){
   function toggleItem(id,itemId){
     updateOrder(id,o=>{
       o.items = o.items.map(i =>
-        i.id===itemId
+        i.id === itemId
           ? {...i,checked:!i.checked}
           : i
       );
+
       return o;
     });
   }
@@ -292,112 +221,121 @@ export default function Home(){
     if(!o) return;
 
     if(!o.items.every(i=>i.checked)){
-      setToast(
-        'Belum bisa approve: semua barang harus diceklis.'
-      );
+      setToast('Belum bisa approve: semua barang harus diceklis.');
       return;
     }
 
-    updateOrder(
-      id,
-      o=>({...o,approved:true})
-    );
+    updateOrder(id,o=>({
+      ...o,
+      approved:true
+    }));
 
-    setToast(
-      'Order berhasil di-approve.'
-    );
+    setToast('Order berhasil di-approve.');
   }
 
   function markSent(id){
 
-    updateOrder(
-      id,
-      o=>({...o,sent:true})
-    );
+    updateOrder(id,o=>({
+      ...o,
+      sent:true
+    }));
 
-    setToast(
-      'Status pengiriman diperbarui.'
-    );
+    setToast('Status pengiriman diperbarui.');
   }
 
   function createOrder(data){
 
-    // VER-001, VER-002, VER-003 dst.
+    /*
+      Generate:
+      VER-001
+      VER-002
+      VER-003
+      VER-004
+      dst.
+
+      Menggunakan nomor terbesar yang sudah ada,
+      sehingga tidak mudah duplicate.
+    */
+
+    const numbers = orders
+      .map(o=>{
+        const match = String(o.id).match(/^VER-(\d+)$/);
+        return match ? Number(match[1]) : 0;
+      });
+
+    const nextNumber =
+      numbers.length > 0
+        ? Math.max(...numbers)+1
+        : 1;
+
     const id =
       'VER-' +
-      String(
-        orders.length + 1
-      ).padStart(3,'0');
+      String(nextNumber).padStart(3,'0');
+
+    const newOrder = {
+      ...data,
+      id,
+      approved:false,
+      sent:false,
+      items:data.items.map((x,i)=>({
+        ...x,
+        id:i+1,
+        checked:false
+      }))
+    };
 
     setOrders(prev=>[
-      {
-        ...data,
-        id,
-        approved:false,
-        sent:false,
-        items:data.items.map(
-          (x,i)=>({
-            ...x,
-            id:i+1,
-            checked:false
-          })
-        )
-      },
+      newOrder,
       ...prev
     ]);
 
     setShowForm(false);
     setPage('orders');
-
-    setToast(
-      'Order baru dibuat.'
-    );
+    setToast('Order baru dibuat.');
   }
 
   function exportCSV(){
 
-    const rows = [
-      [
-        'Order',
-        'PO',
-        'Tanggal Order',
-        'Tanggal Kirim',
-        'Total Item',
-        'Terkirim',
-        'Status'
-      ]
-    ];
+    const rows = [[
+      'Order',
+      'PO',
+      'Tanggal Order',
+      'Tanggal Kirim',
+      'Total Item',
+      'Terkirim',
+      'Progress',
+      'Status'
+    ]];
 
     filtered.forEach(o=>{
+
       rows.push([
         o.id,
         o.po,
         o.orderDate,
         o.deliveryDate,
         o.items.length,
-        o.items.filter(
-          i=>i.checked
-        ).length,
+        o.items.filter(i=>i.checked).length,
+        progress(o)+'%',
         status(o)
       ]);
+
     });
 
     const csv =
-      rows.map(r=>
-        r.map(v=>
-          '"'+
-          String(v)
-            .replaceAll('"','""')+
-          '"'
-        ).join(',')
-      ).join('\n');
+      rows
+        .map(r=>
+          r
+            .map(v=>'"'+String(v).replaceAll('"','""')+'"')
+            .join(',')
+        )
+        .join('\n');
 
-    const blob = new Blob(
-      [csv],
-      {
-        type:'text/csv;charset=utf-8'
-      }
-    );
+    const blob =
+      new Blob(
+        [csv],
+        {type:'text/csv;charset=utf-8'}
+      );
 
     const a =
       document.createElement('a');
@@ -406,17 +344,15 @@ export default function Home(){
       URL.createObjectURL(blob);
 
     a.download =
-      'Laporan_Vertical_' +
-      range +
-      '_' +
-      todayISO() +
+      'Laporan_Vertical_'+
+      range+
+      '_'+
+      todayISO()+
       '.csv';
 
     a.click();
 
-    URL.revokeObjectURL(
-      a.href
-    );
+    URL.revokeObjectURL(a.href);
   }
 
   function printReport(){
@@ -429,10 +365,7 @@ export default function Home(){
       <aside className="sidebar">
 
         <div className="brand">
-          <div className="brandmark">
-            V
-          </div>
-
+          <div className="brandmark">V</div>
           <div>
             <b>VERTICAL</b>
             <span>.ID</span>
@@ -451,10 +384,7 @@ export default function Home(){
         />
 
         <Nav
-          active={
-            page==='orders' ||
-            page==='order'
-          }
+          active={page==='orders'||page==='order'}
           icon="▤"
           text="Orders"
           onClick={()=>setPage('orders')}
@@ -486,10 +416,7 @@ export default function Home(){
         />
 
         <div className="sidebar-bottom">
-          <div className="avatar">
-            A
-          </div>
-
+          <div className="avatar">A</div>
           <div>
             <b>Admin</b>
             <small>Operational</small>
@@ -564,11 +491,7 @@ export default function Home(){
 
         {page==='order' &&
           <OrderDetail
-            order={
-              orders.find(
-                o=>o.id===selected
-              )
-            }
+            order={orders.find(o=>o.id===selected)}
             toggleItem={toggleItem}
             approve={approve}
             markSent={markSent}
@@ -617,20 +540,15 @@ export default function Home(){
   );
 }
 
-
 function Nav({
   active,
   icon,
   text,
   onClick
 }){
-
   return (
     <button
-      className={
-        'nav '+
-        (active?'active':'')
-      }
+      className={'nav '+(active?'active':'')}
       onClick={onClick}
     >
       <span>{icon}</span>
@@ -639,6 +557,34 @@ function Nav({
   );
 }
 
+function status(o){
+
+  if(o.approved)
+    return 'Approved';
+
+  if(o.sent)
+    return 'Dikirim';
+
+  if(
+    o.items.length > 0 &&
+    o.items.every(i=>i.checked)
+  )
+    return 'Siap dibuat SJ';
+
+  return 'Diproses';
+}
+
+function progress(o){
+
+  if(!o.items.length)
+    return 0;
+
+  return Math.round(
+    o.items.filter(i=>i.checked).length /
+    o.items.length *
+    100
+  );
+}
 
 function Dashboard({
   stats,
@@ -648,9 +594,7 @@ function Dashboard({
 
   const upcoming =
     orders
-      .filter(
-        o=>daysUntil(o.deliveryDate)>=0
-      )
+      .filter(o=>daysUntil(o.deliveryDate)>=0)
       .sort(
         (a,b)=>
           new Date(a.deliveryDate) -
@@ -658,17 +602,15 @@ function Dashboard({
       )
       .slice(0,5);
 
-  const warningOrders =
-    upcoming.filter(o=>{
-      const d =
-        daysUntil(o.deliveryDate);
-
-      return d<=5 &&
-             !o.approved;
-    });
+  const warnings =
+    upcoming.filter(o=>
+      daysUntil(o.deliveryDate)<=5 &&
+      !o.approved
+    );
 
   return (
     <>
+
       <section className="cards">
 
         <Stat
@@ -714,8 +656,7 @@ function Dashboard({
               </h2>
 
               <p>
-                Warning mulai H-5
-                sebelum tanggal kirim
+                Warning mulai H-5 sebelum tanggal kirim
               </p>
             </div>
 
@@ -725,22 +666,24 @@ function Dashboard({
 
           </div>
 
-          {
-            warningOrders.length===0
-              ?
-              <Empty
-                text="Tidak ada warning saat ini."
+          {warnings.length===0 ? (
+
+            <Empty
+              text="Tidak ada warning saat ini."
+            />
+
+          ) : (
+
+            warnings.map(o=>
+              <OrderRow
+                key={o.id}
+                o={o}
+                openOrder={openOrder}
+                warning
               />
-              :
-              warningOrders.map(o=>
-                <OrderRow
-                  key={o.id}
-                  o={o}
-                  openOrder={openOrder}
-                  warning
-                />
-              )
-          }
+            )
+
+          )}
 
         </div>
 
@@ -760,15 +703,13 @@ function Dashboard({
 
           </div>
 
-          {
-            upcoming.map(o=>
-              <OrderRow
-                key={o.id}
-                o={o}
-                openOrder={openOrder}
-              />
-            )
-          }
+          {upcoming.map(o=>
+            <OrderRow
+              key={o.id}
+              o={o}
+              openOrder={openOrder}
+            />
+          )}
 
         </div>
 
@@ -800,10 +741,10 @@ function Dashboard({
         />
 
       </section>
+
     </>
   );
 }
-
 
 function Stat({
   title,
@@ -845,7 +786,6 @@ function Stat({
   );
 }
 
-
 function OrderRow({
   o,
   openOrder,
@@ -864,10 +804,12 @@ function OrderRow({
 
       <div className="grow">
 
-        <b>{o.id}</b>
+        <b>
+          {o.id}
+        </b>
 
         <span>
-          PO {o.po || '-'}
+          PO {o.po}
         </span>
 
       </div>
@@ -881,8 +823,7 @@ function OrderRow({
         <div className="bar">
           <i
             style={{
-              width:
-                progress(o)+'%'
+              width:progress(o)+'%'
             }}
           />
         </div>
@@ -913,9 +854,7 @@ function OrderRow({
 
       <button
         className="linkbtn"
-        onClick={()=>
-          openOrder(o)
-        }
+        onClick={()=>openOrder(o)}
       >
         Detail →
       </button>
@@ -923,7 +862,6 @@ function OrderRow({
     </div>
   );
 }
-
 
 function OrderTable({
   orders,
@@ -936,6 +874,7 @@ function OrderTable({
       <table>
 
         <thead>
+
           <tr>
             <th>ORDER</th>
             <th>PO</th>
@@ -945,6 +884,7 @@ function OrderTable({
             <th>STATUS</th>
             <th></th>
           </tr>
+
         </thead>
 
         <tbody>
@@ -954,11 +894,13 @@ function OrderTable({
             <tr key={o.id}>
 
               <td>
-                <b>{o.id}</b>
+                <b>
+                  {o.id}
+                </b>
               </td>
 
               <td>
-                {o.po || '-'}
+                {o.po}
               </td>
 
               <td>
@@ -978,12 +920,13 @@ function OrderTable({
                   </b>
 
                   <div className="bar">
+
                     <i
                       style={{
-                        width:
-                          progress(o)+'%'
+                        width:progress(o)+'%'
                       }}
                     />
+
                   </div>
 
                 </div>
@@ -998,9 +941,7 @@ function OrderTable({
 
                 <button
                   className="linkbtn"
-                  onClick={()=>
-                    openOrder(o)
-                  }
+                  onClick={()=>openOrder(o)}
                 >
                   Buka
                 </button>
@@ -1018,7 +959,6 @@ function OrderTable({
     </div>
   );
 }
-
 
 function Badge({o}){
 
@@ -1040,7 +980,6 @@ function Badge({o}){
   );
 }
 
-
 function Orders({
   orders,
   query,
@@ -1061,17 +1000,14 @@ function Orders({
           </h2>
 
           <p>
-            Klik order untuk checklist
-            barang dan approval.
+            Klik order untuk checklist barang dan approval.
           </p>
 
         </div>
 
         <button
           className="primary"
-          onClick={()=>
-            setShowForm(true)
-          }
+          onClick={()=>setShowForm(true)}
         >
           + Buat Order
         </button>
@@ -1083,9 +1019,7 @@ function Orders({
         <input
           placeholder="Cari order atau PO..."
           value={query}
-          onChange={e=>
-            setQuery(e.target.value)
-          }
+          onChange={e=>setQuery(e.target.value)}
         />
 
         <span>
@@ -1103,7 +1037,6 @@ function Orders({
   );
 }
 
-
 function OrderDetail({
   order,
   toggleItem,
@@ -1113,18 +1046,18 @@ function OrderDetail({
   printReport
 }){
 
-  if(!order){
+  if(!order)
     return (
       <Empty
         text="Order tidak ditemukan."
       />
     );
-  }
 
-  const p = progress(order);
-  const d = daysUntil(
-    order.deliveryDate
-  );
+  const p =
+    progress(order);
+
+  const d =
+    daysUntil(order.deliveryDate);
 
   return (
     <>
@@ -1149,7 +1082,7 @@ function OrderDetail({
           </h2>
 
           <p>
-            PO {order.po || '-'}
+            PO {order.po}
           </p>
 
         </div>
@@ -1171,15 +1104,16 @@ function OrderDetail({
               </h2>
 
               <p>
-                Centang manual barang
-                yang benar-benar sudah dikirim.
+                Centang manual barang yang benar-benar sudah dikirim.
               </p>
 
             </div>
 
             <div className="big-progress">
 
-              <b>{p}%</b>
+              <b>
+                {p}%
+              </b>
 
               <span>
                 {
@@ -1187,8 +1121,7 @@ function OrderDetail({
                     i=>i.checked
                   ).length
                 }/
-                {order.items.length}
-                {' '}item
+                {order.items.length} item
               </span>
 
             </div>
@@ -1199,28 +1132,29 @@ function OrderDetail({
             d>=0 &&
             d<=5 &&
             !order.approved &&
-            <div className="warning">
+            (
+              <div className="warning">
 
-              ⚠
+                ⚠
 
-              <div>
+                <div>
 
-                <b>
-                  WARNING — Pengiriman {
-                    d===0
-                      ? 'hari ini'
-                      : d+' hari lagi'
-                  }
-                </b>
+                  <b>
+                    WARNING — Pengiriman {
+                      d===0
+                        ? 'hari ini'
+                        : d+' hari lagi'
+                    }
+                  </b>
 
-                <span>
-                  Pastikan seluruh barang
-                  sudah dikonfirmasi sebelum approval.
-                </span>
+                  <span>
+                    Pastikan seluruh barang sudah dikonfirmasi sebelum approval.
+                  </span>
+
+                </div>
 
               </div>
-
-            </div>
+            )
           }
 
           <div className="items">
@@ -1257,10 +1191,7 @@ function OrderDetail({
                   </b>
 
                   <small>
-                    {i.model}
-                    {i.part
-                      ? ' · '+i.part
-                      : ''}
+                    {i.part || 'Part number belum diisi'}
                   </small>
 
                 </div>
@@ -1292,38 +1223,42 @@ function OrderDetail({
               🖨 Cetak / PDF
             </button>
 
-            {
-              p===100
-                ?
-                <>
-                  <button
-                    className="secondary"
-                    onClick={()=>
-                      markSent(order.id)
-                    }
-                  >
-                    ✓ Tandai Dikirim
-                  </button>
+            {p===100 ? (
 
-                  <button
-                    className="primary"
-                    disabled={order.approved}
-                    onClick={()=>
-                      approve(order.id)
-                    }
-                  >
-                    {
-                      order.approved
-                        ? '✓ Approved'
-                        : 'Approve Order'
-                    }
-                  </button>
-                </>
-                :
-                <button className="disabled">
-                  🔒 Approve belum tersedia
+              <>
+
+                <button
+                  className="secondary"
+                  onClick={()=>
+                    markSent(order.id)
+                  }
+                >
+                  ✓ Tandai Dikirim
                 </button>
-            }
+
+                <button
+                  className="primary"
+                  disabled={order.approved}
+                  onClick={()=>
+                    approve(order.id)
+                  }
+                >
+                  {
+                    order.approved
+                      ? '✓ Approved'
+                      : 'Approve Order'
+                  }
+                </button>
+
+              </>
+
+            ) : (
+
+              <button className="disabled">
+                🔒 Approve belum tersedia
+              </button>
+
+            )}
 
           </div>
 
@@ -1349,18 +1284,18 @@ function OrderDetail({
             />
 
             <Info
+              k="PO"
+              v={order.po}
+            />
+
+            <Info
               k="Status"
               v={status(order)}
             />
 
             <Info
-              k="Nomor PO"
-              v={order.po || '-'}
-            />
-
-            <Info
               k="Catatan"
-              v={order.notes || '-'}
+              v={order.notes||'-'}
             />
 
           </div>
@@ -1371,29 +1306,28 @@ function OrderDetail({
               Surat Jalan
             </h2>
 
-            {
-              p===100
-                ?
-                <>
-                  <p className="muted">
-                    Semua item lengkap.
-                    Surat jalan siap dibuat
-                    dari data order ini.
-                  </p>
+            {p===100 ? (
 
-                  <button
-                    className="primary full"
-                    onClick={printReport}
-                  >
-                    Buat / Cetak Surat Jalan
-                  </button>
-                </>
-                :
+              <>
                 <p className="muted">
-                  Surat jalan baru tersedia
-                  setelah semua barang diceklis.
+                  Semua item lengkap. Surat jalan siap dibuat dari data order ini.
                 </p>
-            }
+
+                <button
+                  className="primary full"
+                  onClick={printReport}
+                >
+                  Buat / Cetak Surat Jalan
+                </button>
+              </>
+
+            ) : (
+
+              <p className="muted">
+                Surat jalan baru tersedia setelah semua barang diceklis.
+              </p>
+
+            )}
 
           </div>
 
@@ -1405,7 +1339,6 @@ function OrderDetail({
   );
 }
 
-
 function Info({
   k,
   v,
@@ -1415,7 +1348,9 @@ function Info({
   return (
     <div className="info">
 
-      <span>{k}</span>
+      <span>
+        {k}
+      </span>
 
       <b
         className={
@@ -1429,7 +1364,6 @@ function Info({
   );
 }
 
-
 function Shipping({
   orders,
   openOrder
@@ -1437,8 +1371,7 @@ function Shipping({
 
   const list =
     orders.filter(
-      o=>o.sent ||
-      progress(o)===100
+      o=>o.sent || progress(o)===100
     );
 
   return (
@@ -1453,8 +1386,7 @@ function Shipping({
           </h2>
 
           <p>
-            Kontrol order yang siap
-            atau sudah dikirim.
+            Kontrol order yang siap atau sudah dikirim.
           </p>
 
         </div>
@@ -1469,7 +1401,6 @@ function Shipping({
     </section>
   );
 }
-
 
 function Reports({
   orders,
@@ -1491,8 +1422,7 @@ function Reports({
           </h2>
 
           <p>
-            Filter periode lalu
-            export untuk administrasi.
+            Filter periode lalu export untuk administrasi.
           </p>
 
         </div>
@@ -1525,6 +1455,7 @@ function Reports({
             setRange(e.target.value)
           }
         >
+
           <option value="daily">
             Harian
           </option>
@@ -1540,31 +1471,7 @@ function Reports({
           <option value="yearly">
             Tahunan
           </option>
-        </select>
 
-        <input type="date"/>
-        <input type="date"/>
-
-        <select>
-          <option>
-            Semua Status
-          </option>
-
-          <option>
-            Diproses
-          </option>
-
-          <option>
-            Siap dibuat SJ
-          </option>
-
-          <option>
-            Approved
-          </option>
-
-          <option>
-            Dikirim
-          </option>
         </select>
 
       </div>
@@ -1582,8 +1489,7 @@ function Reports({
           title="Item"
           value={
             orders.reduce(
-              (a,o)=>
-                a+o.items.length,
+              (a,o)=>a+o.items.length,
               0
             )
           }
@@ -1624,7 +1530,6 @@ function Reports({
   );
 }
 
-
 function Empty({
   text
 }){
@@ -1635,7 +1540,6 @@ function Empty({
     </div>
   );
 }
-
 
 function ProductsPage(){
 
@@ -1656,8 +1560,7 @@ function ProductsPage(){
           </h2>
 
           <p>
-            Daftar produk interior
-            bus JB5 dari data produk Vertical.
+            Daftar produk interior bus JB5 dari data produk Vertical.
           </p>
 
         </div>
@@ -1715,9 +1618,7 @@ function ProductsPage(){
                     .map(p=>
 
                       <tr
-                        key={
-                          model+p.no
-                        }
+                        key={model+p.no}
                       >
 
                         <td>
@@ -1753,17 +1654,16 @@ function ProductsPage(){
   );
 }
 
-
 function OrderForm({
   onClose,
   onSave
 }){
 
-  const [po,setPo] =
-    useState('');
-
   const [orderDate,setOrderDate] =
     useState(todayISO());
+
+  const [po,setPo] =
+    useState('');
 
   const [deliveryDate,setDeliveryDate] =
     useState('');
@@ -1818,9 +1718,7 @@ function OrderForm({
             ? {
                 ...x,
                 name:value,
-                unit:
-                  product?.unit ||
-                  x.unit,
+                unit:product?.unit||x.unit,
                 model
               }
             : x
@@ -1828,9 +1726,7 @@ function OrderForm({
     );
   }
 
-  function changeModel(
-    value
-  ){
+  function changeModel(value){
 
     setModel(value);
 
@@ -1867,19 +1763,14 @@ function OrderForm({
       return;
     }
 
-    if(
-      new Date(deliveryDate) <
-      new Date(orderDate)
-    ){
+    if(deliveryDate < orderDate){
       alert(
         'Tanggal pengiriman tidak boleh sebelum tanggal order.'
       );
       return;
     }
 
-    if(
-      items.some(i=>!i.name)
-    ){
+    if(items.some(i=>!i.name)){
       alert(
         'Semua produk wajib dipilih.'
       );
@@ -1927,7 +1818,6 @@ function OrderForm({
         <div className="form-grid">
 
           <label>
-
             Nomor PO
 
             <input
@@ -1941,48 +1831,12 @@ function OrderForm({
           </label>
 
           <label>
-
-            Tanggal Order
-
-            <input
-              type="date"
-              value={orderDate}
-              onChange={e=>
-                setOrderDate(
-                  e.target.value
-                )
-              }
-            />
-
-          </label>
-
-          <label>
-
-            Tanggal Pengiriman
-
-            <input
-              type="date"
-              min={orderDate}
-              value={deliveryDate}
-              onChange={e=>
-                setDeliveryDate(
-                  e.target.value
-                )
-              }
-            />
-
-          </label>
-
-          <label>
-
             Model Bus
 
             <select
               value={model}
               onChange={e=>
-                changeModel(
-                  e.target.value
-                )
+                changeModel(e.target.value)
               }
             >
 
@@ -1998,6 +1852,33 @@ function OrderForm({
 
           </label>
 
+          <label>
+            Tanggal Order
+
+            <input
+              type="date"
+              value={orderDate}
+              onChange={e=>
+                setOrderDate(e.target.value)
+              }
+            />
+
+          </label>
+
+          <label>
+            Tanggal Pengiriman
+
+            <input
+              type="date"
+              min={orderDate}
+              value={deliveryDate}
+              onChange={e=>
+                setDeliveryDate(e.target.value)
+              }
+            />
+
+          </label>
+
           <label className="full-field">
 
             Catatan
@@ -2005,9 +1886,7 @@ function OrderForm({
             <input
               value={notes}
               onChange={e=>
-                setNotes(
-                  e.target.value
-                )
+                setNotes(e.target.value)
               }
               placeholder="Catatan order"
             />
@@ -2022,8 +1901,7 @@ function OrderForm({
 
         <p className="muted">
           Pilih produk dari master produk.
-          Part number dapat diisi jika
-          perusahaan menggunakan kode internal.
+          Part number dapat diisi jika perusahaan menggunakan kode internal.
         </p>
 
         <div className="form-items">
@@ -2060,8 +1938,7 @@ function OrderForm({
                         key={p.no}
                         value={p.name}
                       >
-                        {p.no}. {p.name}
-                        {' '}({p.unit})
+                        {p.no}. {p.name} ({p.unit})
                       </option>
 
                     )
@@ -2079,8 +1956,7 @@ function OrderForm({
                         j===n
                           ? {
                               ...x,
-                              part:
-                                e.target.value
+                              part:e.target.value
                             }
                           : x
                     )
@@ -2099,10 +1975,9 @@ function OrderForm({
                         j===n
                           ? {
                               ...x,
-                              qty:
-                                Number(
-                                  e.target.value
-                                )
+                              qty:Number(
+                                e.target.value
+                              )
                             }
                           : x
                     )
