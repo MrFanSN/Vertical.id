@@ -1,0 +1,21 @@
+{
+  "name": "vertical-id",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=20.9.0" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test tests/*.test.mjs",
+    "db:init": "node --env-file=.env.local scripts/db-init.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.0",
+    "next": "16.4.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {},
+  "type": "module"
+}
